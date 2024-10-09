@@ -1,7 +1,4 @@
-﻿using BuildingBlocks.CQRS;
-using Catalog.API.Models;
-
-namespace Catalog.API.Products.CreateProduct;
+﻿namespace Catalog.API.Products.CreateProduct;
 
 public record CreateProductCommand(string Name, List<string> Category, string Description, string ImageFile, decimal Price)
     : ICommand<CreateProductResult>
@@ -9,16 +6,31 @@ public record CreateProductCommand(string Name, List<string> Category, string De
 
 };
 
-public record CreateProductResult(Guid Id) 
+public record CreateProductResult(Guid Id)
 {
 
 };
 
-internal class CreateProductCommandHandler : ICommandHandler<CreateProductCommand, CreateProductResult>
+internal class CreateProductCommandHandler(IDocumentSession session)
+    : ICommandHandler<CreateProductCommand, CreateProductResult>
 {
     public async Task<CreateProductResult> Handle(CreateProductCommand command, CancellationToken cancellationToken)
     {
-        //create product entity from command object
+        // Verificación adicional en el CommandHandler
+        if (string.IsNullOrWhiteSpace(command.Name))
+        {
+            throw new ArgumentException("Product name is required.");
+        }
+        if (command.Price <= 0)
+        {
+            throw new ArgumentException("Price must be greater than zero.");
+        }
+        if (command.Category == null || !command.Category.Any())
+        {
+            throw new ArgumentException("At least one category is required.");
+        }
+
+        // Crear entidad del producto a partir del comando
         var product = new Product
         {
             Name = command.Name,
@@ -27,13 +39,12 @@ internal class CreateProductCommandHandler : ICommandHandler<CreateProductComman
             ImageFile = command.ImageFile,
             Price = command.Price,
         };
-        //save to db
 
+        // Guardar en la base de datos
+        session.Store(product);
+        await session.SaveChangesAsync(cancellationToken);
 
-        //return CreateProductResult object
-        return new CreateProductResult(Guid.NewGuid());
-
-
-        throw new NotImplementedException();
+        // Retornar CreateProductResult
+        return new CreateProductResult(product.Id);
     }
 };
