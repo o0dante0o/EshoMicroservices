@@ -9,6 +9,13 @@
         {
             app.MapGet("products/{id}", async (Guid id, ISender sender) =>
             {
+                // Verificación de entrada en el endpoint
+                if (id == Guid.Empty)
+                {
+                    return Results.BadRequest("The provided product ID is invalid.");
+                }
+
+
                 var result = await sender.Send(new GetProductByIdQuery(id));
 
                 var response = result.Adapt<GetProductByIdResponse>();

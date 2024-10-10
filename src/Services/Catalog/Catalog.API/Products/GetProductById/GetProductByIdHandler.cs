@@ -11,6 +11,12 @@
         {
             logger.LogInformation("GetProductByIdQueryHandler.Handle called with {@Query}", query);
 
+            // Verificación adicional en el QueryHandler
+            if (query.Id == Guid.Empty)
+            {
+                throw new ArgumentException("The provided product ID is invalid.");
+            }
+
             var product = await session.LoadAsync<Product>(query.Id, cancellationToken);
 
             if (product is null)
